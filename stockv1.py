@@ -10,7 +10,7 @@ def load_data():
     script_dir = os.path.dirname(__file__)
     rel_path = "/tickers.csv.gz"
     abs_file_path = os.path.join(script_dir, rel_path)
-    df=pd.read_csv(abs_file_path,compression='gzip')
+    df=pd.read_csv('tickers.csv.gz',compression='gzip')
     df=df.drop(df.columns[0],axis=1)
     df['Date/Time'] =  pd.to_datetime(df['Date/Time'], infer_datetime_format=True)
 
