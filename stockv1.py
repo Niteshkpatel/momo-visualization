@@ -57,8 +57,7 @@ ticker_data = data.loc[data.Ticker==option,['Ticker','Date/Time','Closing Price'
 
 threshold = st.number_input('Momentum Threshold', min_value=0, max_value=400, value=40, help='Set the threshold momentum rank for buy/sell signal')#,on_change=make_chart)
 st.write('The current threshold is :', threshold)
-st.markdown("## Real-Time / Live Momentum Dashboard")
-make_chart()
+
 
 
 def Rebalance(data):
@@ -128,10 +127,14 @@ def plotly_table(data):
             align='center'))
     ])
 
-    st.plotly_chart(fig, use_container_width=True)
+    return fig
 
-st.markdown("## Rebalance history of the stock")
+st.markdown("## Real-Time / Live Momentum Dashboard")
+
 plotly_chart = plotly_table(Rebalance(momentum_threshold(ticker_data,threshold,option)))
+make_chart()
+st.markdown("## Rebalance history of the stock")
+st.plotly_chart(plotly_chart, use_container_width=True)
 
 st.markdown("## Historical distributions of the rank of current stock")
 h =alt.Chart(ticker_data).mark_bar().encode(x = alt.X('MomRank',
