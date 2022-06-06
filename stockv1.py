@@ -46,10 +46,7 @@ def make_chart():
 
     st.altair_chart(c, use_container_width=True)
 
-    h =alt.Chart(ticker_data).mark_bar().encode(x = alt.X('MomRank',
-                                           bin = alt.BinParams(step = 40,extent=[1,400])),
-                                 y = 'count()')
-    st.altair_chart(h, use_container_width=True)
+    
 option = st.selectbox(
      'Select the stock !',
      list(data['Ticker'].unique()))
@@ -60,7 +57,7 @@ ticker_data = data.loc[data.Ticker==option,['Ticker','Date/Time','Closing Price'
 
 threshold = st.number_input('Momentum Threshold', min_value=0, max_value=400, value=40, help='Set the threshold momentum rank for buy/sell signal')#,on_change=make_chart)
 st.write('The current threshold is :', threshold)
-st.title("Real-Time / Live Momentum Dashboard")
+st.markdown("## Real-Time / Live Momentum Dashboard")
 make_chart()
 
 
@@ -112,7 +109,6 @@ def Returns(data):
     st.markdown ("Annualised B & H returns : {} % for a total holding period of {} days".format((str(CAGR_BH)),days))
     # return (BH_returns,CAGR_BH)
 
-st.markdown("## Detailed Data View")
 # st.dataframe(Rebalance(momentum_threshold(ticker_data,threshold,option)))
 
 
@@ -134,7 +130,13 @@ def plotly_table(data):
 
     st.plotly_chart(fig, use_container_width=True)
 
+st.markdown("## rebalance history of the stock")
 plotly_chart = plotly_table(Rebalance(momentum_threshold(ticker_data,threshold,option)))
 
+st.markdown("## Historical distributions of the rank of current stock")
+h =alt.Chart(ticker_data).mark_bar().encode(x = alt.X('MomRank',
+                                           bin = alt.BinParams(step = 40,extent=[1,400])),
+                                 y = 'count()')
+st.altair_chart(h, use_container_width=True)
 
 st.button("Re-run")
