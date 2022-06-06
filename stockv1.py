@@ -130,7 +130,7 @@ def plotly_table(data):
 
     st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("## rebalance history of the stock")
+st.markdown("## Rebalance history of the stock")
 plotly_chart = plotly_table(Rebalance(momentum_threshold(ticker_data,threshold,option)))
 
 st.markdown("## Historical distributions of the rank of current stock")
