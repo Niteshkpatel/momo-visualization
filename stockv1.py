@@ -1,15 +1,11 @@
 import pandas as pd
-import numpy as np
 import streamlit as st
 import altair as alt
-import os
+import plotly.graph_objects as go
 
 
 @st.cache
 def load_data():
-    script_dir = os.path.dirname(__file__)
-    rel_path = "tickers.csv.gz"
-    abs_file_path = os.path.join(script_dir, rel_path)
     df=pd.read_csv('tickers.csv.gz',compression='gzip')
     df=df.drop(df.columns[0],axis=1)
     df['Date/Time'] =  pd.to_datetime(df['Date/Time'], infer_datetime_format=True)
@@ -35,7 +31,7 @@ def momentum_threshold(data,threshold,ticker):#########
     res = data.copy(deep=True)
     res['decision'] = res.apply(lambda row: categorise(row), axis=1)
     res =res.loc[data.Ticker==ticker,['Date/Time','Closing Price','decision','MomRank']]#######
-    st.write('Threshold :',threshold)
+    # st.write('Threshold :',threshold)
     return res
 
 data = load_data()
@@ -63,7 +59,7 @@ st.write('You selected:', option)
 ticker_data = data.loc[data.Ticker==option,['Ticker','Date/Time','Closing Price','MomRank']]
 
 threshold = st.number_input('Momentum Threshold', min_value=0, max_value=400, value=40, help='Set the threshold momentum rank for buy/sell signal')#,on_change=make_chart)
-st.write('The current number is :', threshold)
+st.write('The current threshold is :', threshold)
 st.title("Real-Time / Live Momentum Dashboard")
 make_chart()
 
@@ -83,22 +79,62 @@ def Rebalance(data):
         z = pd.concat([z,v])
     z.reset_index(inplace=True)
     z=z.drop('index',axis=1)
-    points_made_momo = (z.loc[z['decision'] == 'sell','Closing Price'].sum() - z.loc[z['decision'] == 'buy','Closing Price'].sum())
-    st.text ("### Absolute points made using Momo model : {}".format(str(points_made_momo)))
+    # points_made_momo = round(z.loc[z['decision'] == 'sell','Closing Price'].sum() - z.loc[z['decision'] == 'buy','Closing Price'].sum(),2)
+    momo_sell = (z.loc[z['decision'] == 'sell',['Date/Time','Closing Price']]).reset_index(drop=True)
+    momo_buy = (z.loc[z['decision'] == 'buy',['Date/Time','Closing Price']]).reset_index(drop=True)
+    momo_returns = (momo_sell['Closing Price'].div(momo_buy['Closing Price'])-1).sum()+1
+    days = ((momo_sell['Date/Time'] - momo_buy['Date/Time']).sum()).days
+    CAGR_momo = round((momo_returns **(365/days) - 1)*100,1)
+    
+    # st.text ("### Absolute points made using Momo model : {}".format(str(points_made_momo)))
+    # st.text ("Absolute Momentum returns : {}".format(str(round(momo_returns,2))))
+    # st.text ("Annualised momentum returns : {} % for a total holding period of {} days".format((str(CAGR_momo)),days))
+    st.markdown ("Absolute Momentum returns : {}".format(str(round(momo_returns,2))))
+    st.markdown ("Annualised momentum returns : {} % for a total holding period of {} days".format((str(CAGR_momo)),days))
     Returns(data)
+    
+    z['Date/Time'] = z['Date/Time'].dt.date
+    # z.set_index('Date/Time',inplace=True)
+    # z['Closing Price'] = z['Closing Price'].round(2)
+
+
     return z
 
 def Returns(data):
-    BH_returns = round((data['Closing Price'].tail(1).values / data['Closing Price'].head(1).values)[0],2)
+    BH_returns = ((data['Closing Price'].tail(1).values / data['Closing Price'].head(1).values)[0])
     days = (data.tail(1)['Date/Time'].values[0] - data.head(1)['Date/Time'].values[0]).astype('timedelta64[D]').astype(int)
-    CAGR_BH = BH_returns **(252/days) - 1
+    CAGR_BH = round((BH_returns **(365/days) - 1)*100,1)
 
-    st.text ("### Absolute B & H returns : {}".format(str(BH_returns)))
-    st.text ("### Annualised B & H returns : {}".format(str(CAGR_BH)))
-
+    # st.text ("Absolute B & H returns : {}".format(str(round(BH_returns,2))))
+    # st.text (" Annualised B & H returns : {} % for a total holding period of {} days".format((str(CAGR_BH)),days))
+    
+    st.markdown("Absolute B & H returns : {}".format(str(round(BH_returns,2))))
+    st.markdown ("Annualised B & H returns : {} % for a total holding period of {} days".format((str(CAGR_BH)),days))
     # return (BH_returns,CAGR_BH)
 
-st.markdown("### Detailed Data View")
-st.dataframe(Rebalance(momentum_threshold(ticker_data,threshold,option)))
+st.markdown("## Detailed Data View")
+# st.dataframe(Rebalance(momentum_threshold(ticker_data,threshold,option)))
+
+
+def plotly_table(data):
+    fig = go.Figure(data=[go.Table(columnwidth = [400,400,400,400],
+    header=dict(values=list(data.columns),
+                fill_color='grey',
+                line_color='darkslategray',
+                font=dict(color='white', size=14),
+                height=40,
+                align='center'),
+    cells=dict(values=[data['Date/Time'], data['Closing Price'],data['decision'],data['MomRank']],
+            fill_color='black',
+            line_color='darkslategray',
+            font=dict(color='white', size=14),
+            height=30,
+            align='center'))
+    ])
+
+    st.plotly_chart(fig, use_container_width=True)
+
+plotly_chart = plotly_table(Rebalance(momentum_threshold(ticker_data,threshold,option)))
+
 
 st.button("Re-run")
